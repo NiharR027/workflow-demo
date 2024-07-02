@@ -32,20 +32,18 @@ jobs:
           git add .
           git commit --message "Prepare release ${{ github.event.inputs.version }}"
 
-          echo "::set-output name=commit::$(git rev-parse HEAD)"
-
       - name: Push new branch
         run: git push origin release/${{ github.event.inputs.version }}
 
       - name: Create pull request
-        uses: thomaseizinger/create-pull-request@1.0.0
+        uses: thomaseizinger/create-pull-request@1.4.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           head: release/${{ github.event.inputs.version }}
           base: develop
           title: Release version ${{ github.event.inputs.version }}
-          reviewers: ${{ github.actor }}
+          reviewers: ${{ github.actor }} #Assign the PR to the user who triggered the release
           body: |
             Hi @${{ github.actor }}!
 

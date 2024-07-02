@@ -24,12 +24,13 @@ jobs:
           echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Create PR
-        uses: thomaseizinger/create-pull-request@1.0.0
+        uses: thomaseizinger/create-pull-request@1.4.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           head: develop
           base: master
           title: Merge develop into master for release ${{ env.RELEASE_VERSION }}
+          reviewers: ${{ github.actor }} #Assign the PR to the user who merged the release branch
           body: |
             This PR merges the develop branch into master for the release ${{ env.RELEASE_VERSION }}.
