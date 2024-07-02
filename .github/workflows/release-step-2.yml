@@ -1,0 +1,35 @@
+name: "Create PR to merge develop into master - Step 2"
+
+on:
+  pull_request:
+    branches:
+      - develop
+    types:
+      - closed
+
+jobs:
+  create-develop-to-master-pr:
+    name: "Create PR to merge develop into master"
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release/')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Extract version from merged PR
+        run: |
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          VERSION=${BRANCH_NAME#release/}
+          echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Create PR
+        uses: thomaseizinger/create-pull-request@1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          head: develop
+          base: master
+          title: Merge develop into master for release ${{ env.RELEASE_VERSION }}
+          body: |
+            This PR merges the develop branch back into master for the release ${{ env.RELEASE_VERSION }}.

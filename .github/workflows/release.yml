@@ -1,147 +1,147 @@
-name: Release with Git Flow
+# name: Release with Git Flow
 
-on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Version number for the release"
-        required: true
-        default: "1.0.0"
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       version:
+#         description: "Version number for the release"
+#         required: true
+#         default: "1.0.0"
 
-jobs:
-  create_release_branch:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0 # Fetch all history for all branches and tags
+# jobs:
+#   create_release_branch:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v2
+#         with:
+#           fetch-depth: 0 # Fetch all history for all branches and tags
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: "14"
+#       - name: Set up Node.js
+#         uses: actions/setup-node@v2
+#         with:
+#           node-version: "14"
 
-      - name: Set Git config
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
+#       - name: Set Git config
+#         run: |
+#           git config user.name "GitHub Actions"
+#           git config user.email "actions@github.com"
 
-      - name: Set release branch name
-        run: echo "release_branch=release-${{ github.event.inputs.version }}" >> $GITHUB_ENV
+#       - name: Set release branch name
+#         run: echo "release_branch=release-${{ github.event.inputs.version }}" >> $GITHUB_ENV
 
-      - name: Fetch all branches and tags
-        run: git fetch --prune
+#       - name: Fetch all branches and tags
+#         run: git fetch --prune
 
-      - name: Check if release branch exists
-        id: check_release_branch
-        run: |
-          if git ls-remote --heads origin ${{ env.release_branch }}; then
-            echo "branch_exists=true" >> $GITHUB_ENV
-          else
-            echo "branch_exists=false" >> $GITHUB_ENV
-          fi
+#       - name: Check if release branch exists
+#         id: check_release_branch
+#         run: |
+#           if git ls-remote --heads origin ${{ env.release_branch }}; then
+#             echo "branch_exists=true" >> $GITHUB_ENV
+#           else
+#             echo "branch_exists=false" >> $GITHUB_ENV
+#           fi
 
-      - name: Create or switch to release branch
-        run: |
-          if [ "${{ env.branch_exists }}" == "true" ]; then
-            git checkout ${{ env.release_branch }}
-            git pull origin ${{ env.release_branch }}
-          else
-            git checkout -b ${{ env.release_branch }}
-            git push --set-upstream origin ${{ env.release_branch }}
-          fi
+#       - name: Create or switch to release branch
+#         run: |
+#           if [ "${{ env.branch_exists }}" == "true" ]; then
+#             git checkout ${{ env.release_branch }}
+#             git pull origin ${{ env.release_branch }}
+#           else
+#             git checkout -b ${{ env.release_branch }}
+#             git push --set-upstream origin ${{ env.release_branch }}
+#           fi
 
-      - name: Bump version in package.json
-        run: |
-          current_version=$(node -p "require('./package.json').version")
-          if [ "$current_version" != "${{ github.event.inputs.version }}" ]; then
-            npm version ${{ github.event.inputs.version }} --no-git-tag-version
-            git add package.json
-            git commit -m "Bump version to ${{ github.event.inputs.version }}"
-          else
-            echo "Version not changed, skipping npm version"
-          fi
+#       - name: Bump version in package.json
+#         run: |
+#           current_version=$(node -p "require('./package.json').version")
+#           if [ "$current_version" != "${{ github.event.inputs.version }}" ]; then
+#             npm version ${{ github.event.inputs.version }} --no-git-tag-version
+#             git add package.json
+#             git commit -m "Bump version to ${{ github.event.inputs.version }}"
+#           else
+#             echo "Version not changed, skipping npm version"
+#           fi
 
-      - name: Push changes to release branch
-        run: git push origin ${{ env.release_branch }}
+#       - name: Push changes to release branch
+#         run: git push origin ${{ env.release_branch }}
 
-  create_pr_to_develop:
-    needs: create_release_branch
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0 # Fetch all history for all branches and tags
+#   create_pr_to_develop:
+#     needs: create_release_branch
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v2
+#         with:
+#           fetch-depth: 0 # Fetch all history for all branches and tags
 
-      - name: Set Git config
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
+#       - name: Set Git config
+#         run: |
+#           git config user.name "GitHub Actions"
+#           git config user.email "actions@github.com"
 
-      - name: Create Pull Request to develop
-        id: pr-develop
-        uses: peter-evans/create-pull-request@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          base: develop
-          branch: ${{ env.release_branch }}
-          title: "Release ${{ github.event.inputs.version }} to develop"
-          body: "Automated PR to merge release ${{ github.event.inputs.version }} into develop"
-          commit-message: "[create-pull-request] automated change"
-          committer: "GitHub <noreply@github.com>"
-          author: "NiharR27 <NiharR27@users.noreply.github.com>"
-          signoff: false
-          delete-branch: false
-          draft: false
+#       - name: Create Pull Request to develop
+#         id: pr-develop
+#         uses: peter-evans/create-pull-request@v3
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
+#           base: develop
+#           branch: ${{ env.release_branch }}
+#           title: "Release ${{ github.event.inputs.version }} to develop"
+#           body: "Automated PR to merge release ${{ github.event.inputs.version }} into develop"
+#           commit-message: "[create-pull-request] automated change"
+#           committer: "GitHub <noreply@github.com>"
+#           author: "NiharR27 <NiharR27@users.noreply.github.com>"
+#           signoff: false
+#           delete-branch: false
+#           draft: false
 
-  merge_to_master:
-    needs: create_pr_to_develop
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0 # Fetch all history for all branches and tags
+#   merge_to_master:
+#     needs: create_pr_to_develop
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v2
+#         with:
+#           fetch-depth: 0 # Fetch all history for all branches and tags
 
-      - name: Set Git config
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
+#       - name: Set Git config
+#         run: |
+#           git config user.name "GitHub Actions"
+#           git config user.email "actions@github.com"
 
-      - name: Create Pull Request to master
-        id: pr-master
-        uses: peter-evans/create-pull-request@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          base: master
-          branch: develop
-          title: "Merge develop into master for release ${{ github.event.inputs.version }}"
-          body: "Automated PR to merge develop into master after release ${{ github.event.inputs.version }}"
-          commit-message: "[create-pull-request] automated change"
-          committer: "GitHub <noreply@github.com>"
-          author: "NiharR27 <NiharR27@users.noreply.github.com>"
-          signoff: false
-          delete-branch: false
-          draft: false
+#       - name: Create Pull Request to master
+#         id: pr-master
+#         uses: peter-evans/create-pull-request@v3
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
+#           base: master
+#           branch: develop
+#           title: "Merge develop into master for release ${{ github.event.inputs.version }}"
+#           body: "Automated PR to merge develop into master after release ${{ github.event.inputs.version }}"
+#           commit-message: "[create-pull-request] automated change"
+#           committer: "GitHub <noreply@github.com>"
+#           author: "NiharR27 <NiharR27@users.noreply.github.com>"
+#           signoff: false
+#           delete-branch: false
+#           draft: false
 
-  create_tag:
-    needs: merge_to_master
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout master
-        uses: actions/checkout@v2
-        with:
-          ref: master
-          fetch-depth: 0 # Fetch all history for all branches and tags
+#   create_tag:
+#     needs: merge_to_master
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout master
+#         uses: actions/checkout@v2
+#         with:
+#           ref: master
+#           fetch-depth: 0 # Fetch all history for all branches and tags
 
-      - name: Set Git config
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
+#       - name: Set Git config
+#         run: |
+#           git config user.name "GitHub Actions"
+#           git config user.email "actions@github.com"
 
-      - name: Create Tag
-        run: |
-          git tag -a v${{ github.event.inputs.version }} -m "Release ${{ github.event.inputs.version }}"
-          git push origin v${{ github.event.inputs.version }}
+#       - name: Create Tag
+#         run: |
+#           git tag -a v${{ github.event.inputs.version }} -m "Release ${{ github.event.inputs.version }}"
+#           git push origin v${{ github.event.inputs.version }}

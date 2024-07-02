@@ -1,11 +1,12 @@
-name: "Publish new release"
+# name: "Publish new release"
 
-on:
-  pull_request:
-    branches:
-      - master
-    types:
-      - closed
+# on:
+#   pull_request:
+#     branches:
+#       - master
+#     types:
+#       - closed
+
 # jobs:
 #   release:
 #     name: Publish new release

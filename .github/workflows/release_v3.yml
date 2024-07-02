@@ -1,86 +1,86 @@
-name: "Release Workflow V3"
+# name: "Release Workflow V3"
 
-on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Version number for the release"
-        required: true
-        default: "1.0.0"
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       version:
+#         description: "Version number for the release"
+#         required: true
+#         default: "1.0.0"
 
-jobs:
-  create_release_branch:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0 # Fetch all history for all branches and tags
+# jobs:
+#   create_release_branch:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v2
+#         with:
+#           fetch-depth: 0 # Fetch all history for all branches and tags
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: "14"
+#       - name: Set up Node.js
+#         uses: actions/setup-node@v2
+#         with:
+#           node-version: "14"
 
-      - name: Create release branch
-        id: create_release_branch
-        run: |
-          release_branch="release-${{ github.event.inputs.version }}"
-          echo "branch_name=$release_branch" >> $GITHUB_ENV
-          git checkout -b $release_branch
-          npm version ${{ github.event.inputs.version }} --no-git-tag-version
-          git add package.json
-          git commit -m "Bump version to ${{ github.event.inputs.version }}"
-          git push origin $release_branch
+#       - name: Create release branch
+#         id: create_release_branch
+#         run: |
+#           release_branch="release-${{ github.event.inputs.version }}"
+#           echo "branch_name=$release_branch" >> $GITHUB_ENV
+#           git checkout -b $release_branch
+#           npm version ${{ github.event.inputs.version }} --no-git-tag-version
+#           git add package.json
+#           git commit -m "Bump version to ${{ github.event.inputs.version }}"
+#           git push origin $release_branch
 
-      - name: Create Pull Request to develop
-        id: pr-develop
-        uses: peter-evans/create-pull-request@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          base: develop
-          head: ${{ env.branch_name }}
-          title: "Release ${{ github.event.inputs.version }} to develop"
-          body: "Automated PR to merge release ${{ github.event.inputs.version }} into develop"
+#       - name: Create Pull Request to develop
+#         id: pr-develop
+#         uses: peter-evans/create-pull-request@v3
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
+#           base: develop
+#           head: ${{ env.branch_name }}
+#           title: "Release ${{ github.event.inputs.version }} to develop"
+#           body: "Automated PR to merge release ${{ github.event.inputs.version }} into develop"
 
-  create_pr_to_master:
-    needs: create_release_branch
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0 # Fetch all history for all branches and tags
+#   create_pr_to_master:
+#     needs: create_release_branch
+#     if: always()
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v2
+#         with:
+#           fetch-depth: 0 # Fetch all history for all branches and tags
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: "14"
+#       - name: Set up Node.js
+#         uses: actions/setup-node@v2
+#         with:
+#           node-version: "14"
 
-      - name: Create Pull Request to master
-        id: pr-master
-        uses: peter-evans/create-pull-request@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          base: master
-          head: develop
-          title: "Merge develop into master for release ${{ github.event.inputs.version }}"
-          body: "Automated PR to merge develop into master after release ${{ github.event.inputs.version }}"
+#       - name: Create Pull Request to master
+#         id: pr-master
+#         uses: peter-evans/create-pull-request@v3
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
+#           base: master
+#           head: develop
+#           title: "Merge develop into master for release ${{ github.event.inputs.version }}"
+#           body: "Automated PR to merge develop into master after release ${{ github.event.inputs.version }}"
 
-  create_tag:
-    needs: create_pr_to_master
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout master
-        uses: actions/checkout@v2
-        with:
-          ref: master
-          fetch-depth: 0 # Fetch all history for all branches and tags
+#   create_tag:
+#     needs: create_pr_to_master
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout master
+#         uses: actions/checkout@v2
+#         with:
+#           ref: master
+#           fetch-depth: 0 # Fetch all history for all branches and tags
 
-      - name: Create Tag
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git tag -a v${{ github.event.inputs.version }} -m "Release ${{ github.event.inputs.version }}"
-          git push origin v${{ github.event.inputs.version }}
+#       - name: Create Tag
+#         run: |
+#           git config user.name "github-actions"
+#           git config user.email "github-actions@github.com"
+#           git tag -a v${{ github.event.inputs.version }} -m "Release ${{ github.event.inputs.version }}"
+#           git push origin v${{ github.event.inputs.version }}
