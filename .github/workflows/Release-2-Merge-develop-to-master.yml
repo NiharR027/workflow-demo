@@ -1,4 +1,4 @@
-name: "Create PR to merge develop into master - Step 2"
+name: "Release 2 - Create PR to merge develop into master"
 
 on:
   pull_request:
@@ -32,4 +32,4 @@ jobs:
           base: master
           title: Merge develop into master for release ${{ env.RELEASE_VERSION }}
           body: |
-            This PR merges the develop branch back into master for the release ${{ env.RELEASE_VERSION }}.
+            This PR merges the develop branch into master for the release ${{ env.RELEASE_VERSION }}.

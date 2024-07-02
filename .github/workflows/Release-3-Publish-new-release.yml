@@ -1,4 +1,4 @@
-name: "Publish new release - Step 3"
+name: "Release 3 - Publish new release"
 
 on:
   pull_request:
