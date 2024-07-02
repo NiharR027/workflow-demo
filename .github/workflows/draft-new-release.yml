@@ -37,6 +37,16 @@ jobs:
 
           echo "::set-output name=commit::$(git rev-parse HEAD)"
 
+      - name: Pull remote changes
+        run: |
+          git fetch origin
+          git rebase origin/release/${{ github.event.inputs.version }} || (
+            echo "Rebase conflict detected, attempting to resolve automatically"
+            git rebase --abort
+            git pull origin release/${{ github.event.inputs.version }} --rebase --strategy-option theirs
+            git rebase origin/release/${{ github.event.inputs.version }}
+          )
+
       - name: Push new branch
         run: git push origin release/${{ github.event.inputs.version }}
 
