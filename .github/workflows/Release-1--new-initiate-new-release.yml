@@ -49,7 +49,7 @@ jobs:
           head: release/${{ github.event.inputs.version }}
           base: master
           title: Release version ${{ github.event.inputs.version }}
-          reviewers: ${{ github.actor }}, alex-conpago, danthistle-dev, NiharR027
+          reviewers: ${{ github.actor }}
           # team_reviewers: | Assign the PR to a team of reviewers (optional)
           #   developers
           #   qa-team
