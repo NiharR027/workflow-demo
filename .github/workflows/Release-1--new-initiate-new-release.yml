@@ -1,4 +1,4 @@
-name: "Release 1 - Initial New Release"
+name: "Release 1 - Initial New Release!"
 
 on:
   workflow_dispatch:
@@ -13,19 +13,6 @@ jobs:
     name: "Draft a new release"
     runs-on: ubuntu-latest
     steps:
-      - name: Generate a token
-        id: generate-token
-        uses: actions/create-github-app-token@v1
-        with:
-          app-id: ${{ vars.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-
-      - name: Use the token
-        env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
-        run: |
-          gh api octocat
-
       - name: Checkout develop branch 👮
         uses: actions/checkout@v4
         with:
