@@ -1,4 +1,4 @@
-name: "Release 1 - Initial New Release!"
+name: "Release NEW 1 - Initial New Release!!!"
 
 on:
   workflow_dispatch:
@@ -95,7 +95,7 @@ jobs:
 
             fs.writeFileSync(file, updated);
             console.log('Updated app.config.ts ✅');
-            NODE
+          NODE
           else
             echo "app.config.ts not found; skipping TS config bump."
           fi
@@ -103,14 +103,16 @@ jobs:
       - name: Commit manifest files ✏️
         id: make-commit
         run: |
+          set -e
           git add .
-          git commit --message "Bump version to ${{ github.event.inputs.version }}"
+          git commit --message "Bump version to ${{ github.event.inputs.version }}" || echo "No changes to commit."
 
       - name: Push develop branch 🥶
         run: git push origin develop
 
       - name: Create and push release branch 🔥
         run: |
+          set -e
           git checkout -b release/${{ github.event.inputs.version }} develop
           git push origin release/${{ github.event.inputs.version }}
 
@@ -122,9 +124,6 @@ jobs:
           base: master
           title: Release version ${{ github.event.inputs.version }}
           reviewers: ${{ github.actor }}
-          # team_reviewers: | Assign the PR to a team of reviewers (optional)
-          #   developers
-          #   qa-team
           body: |
             Hi @${{ github.actor }}!
 
