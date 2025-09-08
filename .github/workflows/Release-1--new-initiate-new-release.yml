@@ -1,4 +1,4 @@
-name: "Release NEW 1 - Initial New Release!!!"
+name: "Release 1 - Initial New Release!"
 
 on:
   workflow_dispatch:
@@ -21,90 +21,76 @@ jobs:
 
       - name: Initialize mandatory git config 👶
         run: |
-          git config user.name "GitHub actions"
+          set -e
+          git config user.name "GitHub Actions"
           git config user.email noreply@github.com
 
-      - name: Bump version in package.json 🔨
+      - name: Bump version in package.json & app.config.ts 🔨
         run: |
           set -euo pipefail
 
+          echo "Bumping package.json to ${{ github.event.inputs.version }} ..."
           yarn version --new-version "${{ github.event.inputs.version }}" --no-git-tag-version
 
-          # Update app.config.ts: set version, bump ios.buildNumber and android.versionCode
-          if [ -f app.config.ts ]; then
-            INPUT_VERSION="${{ github.event.inputs.version }}" node - <<'NODE'
-            const fs = require('fs');
+          echo "Patching app.config.ts ..."
+          INPUT_VERSION="${{ github.event.inputs.version }}" node - <<'NODE'
+          const fs = require('fs');
 
-            const file = 'app.config.ts';
-            let src = fs.readFileSync(file, 'utf8');
+          const file = 'app.config.ts';
+          if (!fs.existsSync(file)) {
+            console.log('app.config.ts not found, skipping.');
+            process.exit(0);
+          }
 
-            const inputVersion = process.env.INPUT_VERSION;
-            if (!inputVersion) {
-              throw new Error('INPUT_VERSION is not set');
-            }
+          const inputVersion = process.env.INPUT_VERSION;
+          if (!inputVersion) {
+            throw new Error('INPUT_VERSION is not set');
+          }
 
-            // Replace a string-literal field: field: 'value' OR field: "value"
-            function setStringField(source, field, newValue) {
-              const single = new RegExp(`(${field}\\s*:\\s*')([^']*)(')`, 'm');
-              const dbl    = new RegExp(`(${field}\\s*:\\s*")([^"]*)(")`, 'm');
+          let src = fs.readFileSync(file, 'utf8');
 
-              if (single.test(source)) {
-                return source.replace(single, (_m, p1, _old, p3) => `${p1}${newValue.replace(/'/g, "\\'")}${p3}`);
-              }
-              if (dbl.test(source)) {
-                return source.replace(dbl, (_m, p1, _old, p3) => `${p1}${newValue.replace(/"/g, '\\"')}${p3}`);
-              }
-              return source;
-            }
+          // Replace a string-literal field: field: 'value' OR field: "value"
+          function setStringField(source, field, newValue) {
+            const single = new RegExp(`(${field}\\s*:\\s*')([^']*)(')`, 'm');
+            const dbl    = new RegExp(`(${field}\\s*:\\s*")([^"]*)(")`, 'm');
+            if (single.test(source)) return source.replace(single, (_m,p1,_old,p3)=>`${p1}${newValue.replace(/'/g,"\\'")}${p3}`);
+            if (dbl.test(source))    return source.replace(dbl,    (_m,p1,_old,p3)=>`${p1}${newValue.replace(/"/g,'\\"')}${p3}`);
+            return source;
+          }
 
-            // Increment a numeric field that is quoted (e.g. buildNumber: '61' or "61")
-            function incQuotedNumberField(source, field) {
-              const single = new RegExp(`(${field}\\s*:\\s*')(\\d+)(')`, 'm');
-              const dbl    = new RegExp(`(${field}\\s*:\\s*")(\\d+)(")`, 'm');
+          // Increment a numeric field that is quoted (e.g. buildNumber: '61' or "61")
+          function incQuotedNumberField(source, field) {
+            const single = new RegExp(`(${field}\\s*:\\s*')(\\d+)(')`, 'm');
+            const dbl    = new RegExp(`(${field}\\s*:\\s*")(\\d+)(")`, 'm');
+            if (single.test(source)) return source.replace(single, (_m,p1,num,p3)=>`${p1}${Number(num)+1}${p3}`);
+            if (dbl.test(source))    return source.replace(dbl,    (_m,p1,num,p3)=>`${p1}${Number(num)+1}${p3}`);
+            return source;
+          }
 
-              if (single.test(source)) {
-                return source.replace(single, (_m, p1, num, p3) => `${p1}${Number(num) + 1}${p3}`);
-              }
-              if (dbl.test(source)) {
-                return source.replace(dbl, (_m, p1, num, p3) => `${p1}${Number(num) + 1}${p3}`);
-              }
-              return source;
-            }
+          // Increment a numeric field that is NOT quoted (e.g. versionCode: 530)
+          function incNumberField(source, field) {
+            const re = new RegExp(`(${field}\\s*:\\s*)(\\d+)`, 'm');
+            if (re.test(source)) return source.replace(re, (_m,p1,num)=>`${p1}${Number(num)+1}`);
+            return source;
+          }
 
-            // Increment a numeric field that is NOT quoted (e.g. versionCode: 530)
-            function incNumberField(source, field) {
-              const re = new RegExp(`(${field}\\s*:\\s*)(\\d+)`, 'm');
-              if (re.test(source)) {
-                return source.replace(re, (_m, p1, num) => `${p1}${Number(num) + 1}`);
-              }
-              return source;
-            }
+          let updated = setStringField(src, 'version', inputVersion);
+          updated = incQuotedNumberField(updated, 'buildNumber'); // iOS
+          updated = incNumberField(updated, 'versionCode');       // Android
 
-            // 1) Set version
-            let updated = setStringField(src, 'version', inputVersion);
+          if (updated === src) {
+            throw new Error('No changes were applied (fields not found?)');
+          }
 
-            // 2) Increment iOS buildNumber (string)
-            updated = incQuotedNumberField(updated, 'buildNumber');
-
-            // 3) Increment Android versionCode (number)
-            updated = incNumberField(updated, 'versionCode');
-
-            if (updated === src) {
-              throw new Error('No changes were applied to app.config.ts (fields not found?)');
-            }
-
-            fs.writeFileSync(file, updated);
-            console.log('Updated app.config.ts ✅');
+          fs.writeFileSync(file, updated);
+          console.log(`Updated ${file} ✅`);
           NODE
-          else
-            echo "app.config.ts not found; skipping TS config bump."
-          fi
 
       - name: Commit manifest files ✏️
         id: make-commit
         run: |
           set -e
-          git add .
+          git add package.json app.config.ts
           git commit --message "Bump version to ${{ github.event.inputs.version }}" || echo "No changes to commit."
 
       - name: Push develop branch 🥶
@@ -113,8 +99,8 @@ jobs:
       - name: Create and push release branch 🔥
         run: |
           set -e
-          git checkout -b release/${{ github.event.inputs.version }} develop
-          git push origin release/${{ github.event.inputs.version }}
+          git checkout -b "release/${{ github.event.inputs.version }}" develop
+          git push origin "release/${{ github.event.inputs.version }}"
 
       - name: Create pull request to master 🚀
         uses: thomaseizinger/create-pull-request@1.4.0
@@ -127,9 +113,12 @@ jobs:
           body: |
             Hi @${{ github.actor }}!
 
-            This PR was created in response to a manual trigger of the release workflow here: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}.
+            This PR was created in response to a manual trigger of the release workflow here:
+            https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}.
+
             I've bumped the versions in the manifest files in this commit: ${{ steps.make-commit.outputs.commit }}.
 
-            Merging this PR to master will trigger an action to release and publish the new version (check `Release-2-Publish-new-release.yml` for more information).
+            Merging this PR to master will trigger an action to release and publish the new version
+            (check `Release-2-Publish-new-release.yml` for more information).
 
             Happy merging! GLHF! 🚀🙂️‍🔥
