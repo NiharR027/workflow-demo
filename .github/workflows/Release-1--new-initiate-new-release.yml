@@ -25,7 +25,80 @@ jobs:
           git config user.email noreply@github.com
 
       - name: Bump version in package.json 🔨
-        run: yarn version --new-version ${{ github.event.inputs.version }} --no-git-tag-version
+        run: |
+          set -euo pipefail
+
+          yarn version --new-version "${{ github.event.inputs.version }}" --no-git-tag-version
+
+          # Update app.config.ts: set version, bump ios.buildNumber and android.versionCode
+          if [ -f app.config.ts ]; then
+            INPUT_VERSION="${{ github.event.inputs.version }}" node - <<'NODE'
+            const fs = require('fs');
+
+            const file = 'app.config.ts';
+            let src = fs.readFileSync(file, 'utf8');
+
+            const inputVersion = process.env.INPUT_VERSION;
+            if (!inputVersion) {
+              throw new Error('INPUT_VERSION is not set');
+            }
+
+            // Replace a string-literal field: field: 'value' OR field: "value"
+            function setStringField(source, field, newValue) {
+              const single = new RegExp(`(${field}\\s*:\\s*')([^']*)(')`, 'm');
+              const dbl    = new RegExp(`(${field}\\s*:\\s*")([^"]*)(")`, 'm');
+
+              if (single.test(source)) {
+                return source.replace(single, (_m, p1, _old, p3) => `${p1}${newValue.replace(/'/g, "\\'")}${p3}`);
+              }
+              if (dbl.test(source)) {
+                return source.replace(dbl, (_m, p1, _old, p3) => `${p1}${newValue.replace(/"/g, '\\"')}${p3}`);
+              }
+              return source;
+            }
+
+            // Increment a numeric field that is quoted (e.g. buildNumber: '61' or "61")
+            function incQuotedNumberField(source, field) {
+              const single = new RegExp(`(${field}\\s*:\\s*')(\\d+)(')`, 'm');
+              const dbl    = new RegExp(`(${field}\\s*:\\s*")(\\d+)(")`, 'm');
+
+              if (single.test(source)) {
+                return source.replace(single, (_m, p1, num, p3) => `${p1}${Number(num) + 1}${p3}`);
+              }
+              if (dbl.test(source)) {
+                return source.replace(dbl, (_m, p1, num, p3) => `${p1}${Number(num) + 1}${p3}`);
+              }
+              return source;
+            }
+
+            // Increment a numeric field that is NOT quoted (e.g. versionCode: 530)
+            function incNumberField(source, field) {
+              const re = new RegExp(`(${field}\\s*:\\s*)(\\d+)`, 'm');
+              if (re.test(source)) {
+                return source.replace(re, (_m, p1, num) => `${p1}${Number(num) + 1}`);
+              }
+              return source;
+            }
+
+            // 1) Set version
+            let updated = setStringField(src, 'version', inputVersion);
+
+            // 2) Increment iOS buildNumber (string)
+            updated = incQuotedNumberField(updated, 'buildNumber');
+
+            // 3) Increment Android versionCode (number)
+            updated = incNumberField(updated, 'versionCode');
+
+            if (updated === src) {
+              throw new Error('No changes were applied to app.config.ts (fields not found?)');
+            }
+
+            fs.writeFileSync(file, updated);
+            console.log('Updated app.config.ts ✅');
+            NODE
+          else
+            echo "app.config.ts not found; skipping TS config bump."
+          fi
 
       - name: Commit manifest files ✏️
         id: make-commit
