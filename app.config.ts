@@ -1,13 +1,13 @@
 export default ({ config }) => ({
   ...config,
   name: "NomNom",
-  version: "2.16.5",
+  version: "6.0.0",
   scheme: "nomnom",
   notification: {
     icon: "./assets/icon.png",
   },
   ios: {
-    buildNumber: "62",
+    buildNumber: "63",
     supportsTablet: true,
     associatedDomains: ["nom:nom.nom.online"],
     entitlements: {
@@ -16,7 +16,7 @@ export default ({ config }) => ({
     requireFullScreen: true,
   },
   android: {
-    versionCode: 531,
+    versionCode: 532,
     edgeToEdgeEnabled: false,
     blockedPermissions: ["android.permission.USE_FULL_SCREEN_INTENT"],
     package: "nom.nom",
